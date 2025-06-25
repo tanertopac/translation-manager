@@ -1,0 +1,253 @@
+<div class="container-fluid">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">Translation Manager</a>
+    </div>
+  </nav>
+
+  <div class="row">
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-header">
+          <h5>Translation Files</h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="fileInput" class="form-label">Load Translation File</label>
+            <input
+              type="file"
+              class="form-control"
+              id="fileInput"
+              accept=".json"
+              (change)="onFileSelected($event)">
+          </div>
+
+          @if (fileName) {
+            <div class="alert alert-info">
+              <strong>Loaded:</strong> {{ fileName }}
+            </div>
+          }
+
+          @if (errorMessage) {
+            <div class="alert alert-danger">
+              {{ errorMessage }}
+            </div>
+          }
+
+          @if (jsonContent) {
+            <div class="d-grid">
+              <button
+                type="button"
+                class="btn btn-success"
+                (click)="exportToJson()">
+                <i class="bi bi-download"></i> Export to JSON
+              </button>
+            </div>
+          }
+
+          @if (jsonContent) {
+            <div class="d-grid mt-2">
+              <button
+                type="button"
+                class="btn btn-primary"
+                (click)="openExcelExportModal()">
+                <i class="bi bi-table"></i> Export to Excel
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-9">
+      <div class="card">
+        <div class="card-header">
+          <h5>Translation Editor</h5>
+        </div>
+        <div class="card-body">
+          @if (!jsonContent) {
+            <div class="text-muted">
+              Please load a JSON translation file to start editing
+            </div>
+          }
+
+          @if (jsonContent) {
+            <div>
+              <!-- Filter and Add Section -->
+              <div class="mb-3">
+                <div class="input-group">
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="Filter by key..."
+                    [(ngModel)]="filterText"
+                    (keydown)="onFilterKeyDown($event)">
+                  <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    (click)="onFilterClick()">
+                    Filter
+                  </button>
+                  <button
+                    class="btn btn-outline-primary"
+                    type="button"
+                    (click)="openAddModal()">
+                    + Add
+                  </button>
+                  <button
+                    class="btn btn-outline-info"
+                    type="button"
+                    (click)="openBulkImportModal()"
+                    [disabled]="!jsonContent">
+                    📁 Add in Bulk
+                  </button>
+                </div>
+              </div>
+              <!-- Translation Keys List -->
+              <div class="translation-list">
+                <h6>Translation Keys ({{ (filteredData$ | async)?.length || 0 }} items)</h6>
+                <div class="list-group" style="max-height: 500px; overflow-y: auto;">
+                  @for (item of filteredData$ | async; track item) {
+                    <div
+                      class="list-group-item d-flex justify-content-between align-items-start"
+                      [class.modified]="item.isChanged && !item.isNew && !item.isDeleted && !item.isError"
+                      [class.new-item]="item.isNew && !item.isDeleted && !item.isError"
+                      [class.deleted-item]="item.isDeleted"
+                      [class.error-item]="item.isError">
+                      <div class="ms-2 me-auto">
+                        <div class="fw-bold text-primary">
+                          {{ item.key }}
+                          @if (item.isDeleted) {
+                            <span class="badge bg-danger text-white ms-2" title="Deleted">🗑️</span>
+                          }
+                          @if (item.isNew && !item.isDeleted && !item.isError) {
+                            <span class="badge bg-success text-white ms-2" title="New item">+</span>
+                          }
+                          @if (item.isChanged && !item.isNew && !item.isDeleted && !item.isError) {
+                            <span class="badge bg-warning text-dark ms-2" title="Modified">✏️</span>
+                          }
+                          @if (item.isError) {
+                            <span class="badge bg-danger text-white ms-2" title="{{ item.errorMessage }}">❌</span>
+                          }
+                        </div>
+                        @if (!item.isEditing) {
+                          <div>
+                            <small class="text-muted" [class.text-decoration-line-through]="item.isDeleted">{{ item.value }}</small>
+                            @if (item.isError && item.errorMessage) {
+                              <div>
+                                <small class="text-danger">Error: {{ item.errorMessage }}</small>
+                              </div>
+                            }
+                          </div>
+                        }
+                        @if (item.isEditing) {
+                          <div class="mt-2">
+                            <input
+                              type="text"
+                              class="form-control form-control-sm"
+                              [(ngModel)]="item.editValue"
+                              placeholder="Enter translation value">
+                          </div>
+                        }
+                      </div>
+                      <div class="btn-group-vertical" role="group">
+                        @if (!item.isEditing && !item.isDeleted && !item.isError) {
+                          <button
+                            type="button"
+                            class="btn btn-outline-primary btn-sm mb-1"
+                            (click)="editItem(item.key)"
+                            title="Edit">
+                            ✏️
+                          </button>
+                          @if (item.isChanged && !item.isNew) {
+                            <button
+                              type="button"
+                              class="btn btn-outline-warning btn-sm mb-1"
+                              (click)="revertToOriginal(item.key)"
+                              title="Revert to original">
+                              ↶
+                            </button>
+                          }
+                          <button
+                            type="button"
+                            class="btn btn-outline-danger btn-sm"
+                            (click)="deleteItem(item.key)"
+                            title="Delete">
+                            🗑️
+                          </button>
+                        }
+                        @if (item.isError) {
+                          <button
+                            type="button"
+                            class="btn btn-outline-danger btn-sm"
+                            (click)="removeErrorItem(item.key)"
+                            title="Remove error item">
+                            ❌
+                          </button>
+                        }
+                        @if (item.isDeleted) {
+                          <button
+                            type="button"
+                            class="btn btn-outline-info btn-sm"
+                            (click)="restoreItem(item.key)"
+                            title="Restore">
+                            ↻
+                          </button>
+                        }
+                        @if (item.isEditing) {
+                          <button
+                            type="button"
+                            class="btn btn-outline-success btn-sm mb-1"
+                            (click)="saveItem(item.key)"
+                            title="Save">
+                            ✅
+                          </button>
+                          <button
+                            type="button"
+                            class="btn btn-outline-secondary btn-sm"
+                            (click)="revertItem(item.key)"
+                            title="Cancel">
+                            ❌
+                          </button>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+                @if ((filteredData$ | async)?.length === 0 && filterText) {
+                  <div class="alert alert-info mt-2">
+                    No keys found matching "{{ filterText }}"
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Translation Modal -->
+  <app-add-translation-modal
+    [isVisible]="showAddModal"
+    [errors]="addItemErrors"
+    (close)="closeAddModal()"
+    (addTranslation)="onAddTranslation($event)">
+  </app-add-translation-modal>
+
+  <!-- Excel Export Modal -->
+  <app-excel-export-modal
+    [isVisible]="showExcelModal"
+    [errors]="excelExportErrors"
+    (close)="closeExcelExportModal()"
+    (exportToExcel)="onExcelExport($event)">
+  </app-excel-export-modal>
+
+  <!-- Bulk Import Modal -->
+  <app-bulk-import-modal
+    [isVisible]="showBulkImportModal"
+    [errors]="bulkImportErrors"
+    (close)="closeBulkImportModal()"
+    (importFile)="onBulkImport($event)">
+  </app-bulk-import-modal>
+</div>

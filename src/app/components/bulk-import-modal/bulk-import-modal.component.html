@@ -1,0 +1,62 @@
+@if (isVisible()) {
+  <div class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Import Translations in Bulk</h5>
+          <button type="button" class="btn-close" (click)="onClose()"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="bulkFile" class="form-label">Select JSON File *</label>
+            <input
+              type="file"
+              class="form-control"
+              id="bulkFile"
+              accept=".json"
+              (change)="onFileSelected($event)"
+              [class.is-invalid]="errors().file">
+            @if (errors().file) {
+              <div class="invalid-feedback">
+                {{ errors().file }}
+              </div>
+            }
+          </div>
+
+          @if (fileName) {
+            <div class="alert alert-info">
+              <strong>Selected:</strong> {{ fileName }}
+            </div>
+          }
+
+          @if (errors().parsing) {
+            <div class="alert alert-danger">
+              <strong>Error:</strong> {{ errors().parsing }}
+            </div>
+          }
+
+          <div class="alert alert-warning">
+            <strong>Note:</strong>
+            <ul class="mb-0 mt-2">
+              <li>The selected file will be merged with the current translation file</li>
+              <li>Duplicate keys will be marked as errors and won't be exported</li>
+              <li>Invalid entries will be highlighted in the translation list</li>
+            </ul>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="onClose()">
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="onImport()"
+            [disabled]="!selectedFile">
+            Import Translations
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

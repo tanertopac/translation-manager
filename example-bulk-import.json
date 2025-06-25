@@ -1,0 +1,12 @@
+{
+  "bulk.import.test1": "Test value from bulk import 1",
+  "bulk.import.test2": "Test value from bulk import 2",
+  "Lang.Code": "tr",
+  "nested": {
+    "level1": {
+      "key1": "Nested value 1",
+      "key2": "Nested value 2"
+    },
+    "simple": "Simple nested value"
+  }
+}

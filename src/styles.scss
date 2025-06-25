@@ -1,0 +1,14 @@
+/* You can add global styles to this file, and also import other style files */
+
+// ngx-toastr styles
+@use 'ngx-toastr/toastr';
+
+// Global styles for translation manager
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #f8f9fa;
+}
+
+.container-fluid {
+  padding: 20px;
+}

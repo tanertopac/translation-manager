@@ -1,0 +1,52 @@
+@if (isVisible()) {
+  <div class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add New Translation</h5>
+          <button type="button" class="btn-close" (click)="onClose()"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="newKey" class="form-label">Key *</label>
+            <input
+              type="text"
+              class="form-control"
+              id="newKey"
+              [(ngModel)]="newItemKey"
+              placeholder="Enter translation key"
+              [class.is-invalid]="errors().key">
+            @if (errors().key) {
+              <div class="invalid-feedback">
+                {{ errors().key }}
+              </div>
+            }
+          </div>
+          <div class="mb-3">
+            <label for="newValue" class="form-label">Value *</label>
+            <input
+              type="text"
+              class="form-control"
+              id="newValue"
+              [(ngModel)]="newItemValue"
+              placeholder="Enter translation value"
+              [class.is-invalid]="errors().value">
+            @if (errors().value) {
+              <div class="invalid-feedback">
+                {{ errors().value }}
+              </div>
+            }
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="onClose()">
+            Cancel
+          </button>
+          <button type="button" class="btn btn-primary" (click)="onAdd()">
+            Add Translation
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
