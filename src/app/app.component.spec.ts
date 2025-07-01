@@ -1,10 +1,22 @@
 import { TestBed } from '@angular/core/testing';
+import { provideAnimations } from '@angular/platform-browser/animations';
+import { provideToastr } from 'ngx-toastr';
 import { AppComponent } from './app.component';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
+      providers: [
+        provideAnimations(),
+        provideToastr({
+          timeOut: 3000,
+          positionClass: 'toast-top-right',
+          preventDuplicates: true,
+          progressBar: true,
+          closeButton: true
+        })
+      ]
     }).compileComponents();
   });
 
@@ -35,11 +47,20 @@ describe('AppComponent', () => {
     expect(app.showAddModal).toBe(true);
   });
 
-  it('should show excel export modal when openExcelExportModal is called', () => {
+  it('should show export filename modal when openExportFilenameModal is called', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
 
-    app.openExcelExportModal();
-    expect(app.showExcelModal).toBe(true);
+    app.openExportFilenameModal('excel');
+    expect(app.showExportFilenameModal).toBe(true);
+    expect(app.currentExportType).toBe('excel');
+  });
+
+  it('should show filename prompt modal when openFilenamePromptModal is called', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+
+    app.openFilenamePromptModal();
+    expect(app.showFilenamePromptModal).toBe(true);
   });
 });

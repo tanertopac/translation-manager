@@ -1,0 +1,65 @@
+@if (isVisible()) {
+  <div class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ title() }}</h5>
+          <button type="button" class="btn-close" (click)="onClose()"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="filename" class="form-label">Filename <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <input
+                type="text"
+                class="form-control"
+                id="filename"
+                [(ngModel)]="filename"
+                [placeholder]="placeholder()"
+                [class.is-invalid]="errors().filename">
+              <span class="input-group-text">{{ extension() }}</span>
+            </div>
+            @if (errors().filename) {
+              <div class="invalid-feedback d-block">
+                {{ errors().filename }}
+              </div>
+            }
+            <div class="form-text">
+              The file will be saved with the {{ extension() }} extension
+            </div>
+          </div>
+
+          @if (showAdditionalField()) {
+            <div class="mb-3">
+              <label for="additionalData" class="form-label">{{ additionalFieldLabel() }} <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                id="additionalData"
+                [(ngModel)]="additionalData"
+                [placeholder]="additionalFieldPlaceholder()"
+                [class.is-invalid]="errors().additionalData">
+              @if (errors().additionalData) {
+                <div class="invalid-feedback d-block">
+                  {{ errors().additionalData }}
+                </div>
+              }
+            </div>
+          }
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="onClose()">
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="onConfirm()"
+            [disabled]="!filename.trim() || (showAdditionalField() && !additionalData.trim())">
+            Create
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

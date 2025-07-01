@@ -13,6 +13,14 @@
         </div>
         <div class="card-body">
           <div class="mb-3">
+            <div class="d-grid mb-2">
+              <button
+                type="button"
+                class="btn btn-outline-success"
+                (click)="onCreateTranslation()">
+                <i class="bi bi-plus-circle"></i> Create Translation
+              </button>
+            </div>
             <label for="fileInput" class="form-label">Load Translation File</label>
             <input
               type="file"
@@ -39,7 +47,7 @@
               <button
                 type="button"
                 class="btn btn-success"
-                (click)="exportToJson()">
+                (click)="openExportFilenameModal('json')">
                 <i class="bi bi-download"></i> Export to JSON
               </button>
             </div>
@@ -50,7 +58,7 @@
               <button
                 type="button"
                 class="btn btn-primary"
-                (click)="openExcelExportModal()">
+                (click)="openExportFilenameModal('excel')">
                 <i class="bi bi-table"></i> Export to Excel
               </button>
             </div>
@@ -235,14 +243,6 @@
     (addTranslation)="onAddTranslation($event)">
   </app-add-translation-modal>
 
-  <!-- Excel Export Modal -->
-  <app-excel-export-modal
-    [isVisible]="showExcelModal"
-    [errors]="excelExportErrors"
-    (close)="closeExcelExportModal()"
-    (exportToExcel)="onExcelExport($event)">
-  </app-excel-export-modal>
-
   <!-- Bulk Import Modal -->
   <app-bulk-import-modal
     [isVisible]="showBulkImportModal"
@@ -250,4 +250,29 @@
     (close)="closeBulkImportModal()"
     (importFile)="onBulkImport($event)">
   </app-bulk-import-modal>
+
+  <!-- Filename Prompt Modal -->
+  <app-filename-prompt-modal
+    [isVisible]="showFilenamePromptModal"
+    [title]="'Create New Translation File'"
+    [placeholder]="'my-translations'"
+    [extension]="'.json'"
+    [errors]="filenamePromptErrors"
+    (close)="closeFilenamePromptModal()"
+    (confirm)="onFilenameConfirm($event)">
+  </app-filename-prompt-modal>
+
+  <!-- Export Filename Prompt Modal -->
+  <app-filename-prompt-modal
+    [isVisible]="showExportFilenameModal"
+    [title]="currentExportType === 'json' ? 'Export to JSON' : 'Export to Excel'"
+    [placeholder]="currentExportType === 'json' ? 'my-translations' : 'my-translations'"
+    [extension]="currentExportType === 'json' ? '.json' : '.xlsx'"
+    [showAdditionalField]="currentExportType === 'excel'"
+    [additionalFieldLabel]="'Language Code'"
+    [additionalFieldPlaceholder]="'en'"
+    [errors]="exportFilenameErrors"
+    (close)="closeExportFilenameModal()"
+    (confirm)="onExportFilenameConfirm($event)">
+  </app-filename-prompt-modal>
 </div>

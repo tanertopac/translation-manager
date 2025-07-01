@@ -10,19 +10,20 @@ import {
   AddTranslationErrors
 } from './components/add-translation-modal/add-translation-modal.component';
 import {
-  ExcelExportModalComponent,
-  ExcelExportData,
-  ExcelExportErrors
-} from './components/excel-export-modal/excel-export-modal.component';
-import {
   BulkImportModalComponent,
   BulkImportData,
   BulkImportErrors
 } from './components/bulk-import-modal/bulk-import-modal.component';
+import {
+  FilenamePromptModalComponent,
+  FilenamePromptData,
+  FilenamePromptErrors
+} from './components/filename-prompt-modal/filename-prompt-modal.component';
+import { MessageService } from './services/message.service';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, FormsModule, AddTranslationModalComponent, ExcelExportModalComponent, BulkImportModalComponent],
+  imports: [CommonModule, FormsModule, AddTranslationModalComponent, BulkImportModalComponent, FilenamePromptModalComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })
@@ -30,6 +31,7 @@ export class AppComponent {
   title = 'translation-manager';
 
   private readonly toastr = inject(ToastrService);
+  private readonly messageService = inject(MessageService);
 
   loadedFile: any = null;
   fileName: string = '';
@@ -47,13 +49,18 @@ export class AppComponent {
   showAddModal: boolean = false;
   addItemErrors: AddTranslationErrors = {};
 
-  // Excel export functionality
-  showExcelModal: boolean = false;
-  excelExportErrors: ExcelExportErrors = {};
-
   // Bulk import functionality
   showBulkImportModal: boolean = false;
   bulkImportErrors: BulkImportErrors = {};
+
+  // Filename prompt functionality
+  showFilenamePromptModal: boolean = false;
+  filenamePromptErrors: FilenamePromptErrors = {};
+
+  // Export filename prompt functionality
+  showExportFilenameModal: boolean = false;
+  exportFilenameErrors: FilenamePromptErrors = {};
+  currentExportType: 'json' | 'excel' = 'json';
 
   constructor() {
     this.filteredData$ = combineLatest([
@@ -83,13 +90,168 @@ export class AppComponent {
     );
   }
 
+  onCreateTranslation(): void {
+    if (this.hasWorkspaceData()) {
+      this.messageService.confirm(
+        'This will clear the current workspace and create a new empty translation file. Are you sure?',
+        (result) => {
+          if (result) {
+            this.openFilenamePromptModal();
+          }
+        },
+        'Confirm Action',
+        {
+          confirmText: 'Yes, Continue',
+          confirmButtonClass: 'btn-warning'
+        }
+      );
+    } else {
+      this.openFilenamePromptModal();
+    }
+  }
+
   onFileSelected(event: any): void {
     const file = event.target.files[0];
     if (file) {
-      this.fileName = file.name;
-      this.loadedFile = file;
-      this.readFile(file);
+      if (this.hasWorkspaceData()) {
+        this.messageService.confirm(
+          'This will replace the current workspace with the selected file. Are you sure?',
+          (result) => {
+            if (result) {
+              this.fileName = file.name;
+              this.loadedFile = file;
+              this.readFile(file);
+            }
+          },
+          'Confirm Action',
+          {
+            confirmText: 'Yes, Continue',
+            confirmButtonClass: 'btn-warning'
+          }
+        );
+      } else {
+        this.fileName = file.name;
+        this.loadedFile = file;
+        this.readFile(file);
+      }
     }
+  }
+
+  private hasWorkspaceData(): boolean {
+    return this.jsonContent !== null || this.flattenedDataSubject.value.length > 0;
+  }
+
+  openFilenamePromptModal(): void {
+    this.showFilenamePromptModal = true;
+    this.filenamePromptErrors = {};
+  }
+
+  closeFilenamePromptModal(): void {
+    this.showFilenamePromptModal = false;
+    this.filenamePromptErrors = {};
+  }
+
+  openExportFilenameModal(exportType: 'json' | 'excel'): void {
+    this.currentExportType = exportType;
+    this.showExportFilenameModal = true;
+    this.exportFilenameErrors = {};
+  }
+
+  closeExportFilenameModal(): void {
+    this.showExportFilenameModal = false;
+    this.exportFilenameErrors = {};
+  }
+
+  onExportFilenameConfirm(data: FilenamePromptData): void {
+    if (this.currentExportType === 'json') {
+      this.exportFilenameErrors = this.validateFilename(data.filename);
+      if (Object.keys(this.exportFilenameErrors).length === 0) {
+        this.performJsonExport(data.filename);
+        this.closeExportFilenameModal();
+      }
+    } else if (this.currentExportType === 'excel') {
+      this.exportFilenameErrors = this.validateExcelExport(data.filename, data.additionalData ?? '');
+      if (Object.keys(this.exportFilenameErrors).length === 0) {
+        this.performExcelExport(data.filename, data.additionalData ?? '');
+        this.closeExportFilenameModal();
+      }
+    }
+  }
+
+  onFilenameConfirm(data: FilenamePromptData): void {
+    this.filenamePromptErrors = this.validateFilename(data.filename);
+
+    if (Object.keys(this.filenamePromptErrors).length === 0) {
+      // Create new translation file
+      this.fileName = `${data.filename}.json`;
+      this.jsonContent = {};
+      this.originalJsonContent = {};
+      this.flattenedDataSubject.next([]);
+      this.errorMessage = '';
+      this.toastr.success(`New translation file "${this.fileName}" created`, 'File Created');
+      this.closeFilenamePromptModal();
+    }
+  }
+
+  private performJsonExport(filename: string): void {
+    const currentData = this.flattenedDataSubject.value;
+    TranslationUtils.exportToJson(currentData, `${filename}.json`);
+    this.toastr.success(`JSON file "${filename}.json" exported successfully`, 'Export Complete');
+  }
+
+  private performExcelExport(filename: string, languageCode: string): void {
+    const currentData = this.flattenedDataSubject.value;
+    TranslationUtils.exportToExcel(currentData, filename, languageCode);
+    this.toastr.success(`Excel file "${filename}.xlsx" exported successfully`, 'Export Complete');
+  }
+
+  private validateFilename(filename: string): FilenamePromptErrors {
+    const errors: FilenamePromptErrors = {};
+
+    if (!filename.trim()) {
+      errors.filename = 'Filename is required';
+    } else if (filename.includes(' ')) {
+      errors.filename = 'Filename cannot contain spaces';
+    } else if (filename.includes('/') || filename.includes('\\')) {
+      errors.filename = 'Filename cannot contain slashes';
+    } else if (filename.includes('<') || filename.includes('>') || filename.includes(':') || filename.includes('"') || filename.includes('|') || filename.includes('?') || filename.includes('*')) {
+      errors.filename = 'Filename contains invalid characters';
+    } else if (filename.length > 100) {
+      errors.filename = 'Filename is too long (max 100 characters)';
+    }
+
+    return errors;
+  }
+
+  private validateExcelExport(filename: string, languageCode: string): FilenamePromptErrors {
+    const errors: FilenamePromptErrors = {};
+
+    // Filename validation
+    const filenameErrors = this.validateFilename(filename);
+    if (filenameErrors.filename) {
+      errors.filename = filenameErrors.filename;
+    }
+
+    // Language code validation
+    if (!languageCode.trim()) {
+      errors.additionalData = 'Language code is required';
+    } else if (languageCode.length !== 2) {
+      errors.additionalData = 'Language code must be exactly 2 characters';
+    } else if (!/^[a-z]{2}$/.test(languageCode)) {
+      errors.additionalData = 'Language code must contain only lowercase letters';
+    }
+
+    return errors;
+  }
+
+  private createEmptyTranslation(filename?: string): void {
+    this.jsonContent = {};
+    this.originalJsonContent = {};
+    this.fileName = filename ? `${filename}.json` : 'new-translation.json';
+    this.loadedFile = null;
+    this.errorMessage = '';
+    this.flattenedDataSubject.next([]);
+    this.toastr.success('Created new empty translation file', 'New Translation Created');
   }
 
   private readFile(file: File): void {
@@ -296,30 +458,6 @@ export class AppComponent {
     const currentData = this.flattenedDataSubject.value;
     TranslationUtils.exportToJson(currentData, this.fileName);
     this.toastr.success('JSON file exported successfully', 'Export Complete');
-  }
-
-  openExcelExportModal(): void {
-    this.showExcelModal = true;
-    this.excelExportErrors = {};
-  }
-
-  closeExcelExportModal(): void {
-    this.showExcelModal = false;
-    this.excelExportErrors = {};
-  }
-
-  onExcelExport(data: ExcelExportData): void {
-    this.excelExportErrors = TranslationUtils.validateExcelExportInputs(
-      data.filename,
-      data.languageCode
-    );
-
-    if (Object.keys(this.excelExportErrors).length === 0) {
-      const currentData = this.flattenedDataSubject.value;
-      TranslationUtils.exportToExcel(currentData, data.filename, data.languageCode);
-      this.toastr.success(`Excel file "${data.filename}.xlsx" exported successfully`, 'Export Complete');
-      this.closeExcelExportModal();
-    }
   }
 
   openBulkImportModal(): void {
